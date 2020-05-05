@@ -94,10 +94,11 @@ class PCBModel(nn.Module):
 ##########
 # Instantiation
 ##########
-def PCB_p6(num_classes, share_conv, return_features, **kwargs):
+def PCB_p6(num_classes,  num_stripes, share_conv, return_features, **kwargs):
+    assert num_stripes==6, "num_stripes not eq 6"
     return PCBModel(
         num_classes=num_classes,
-        num_stripes=6,
+        num_stripes=num_stripes,
         share_conv=share_conv,
         return_features=return_features,
         **kwargs
@@ -117,11 +118,8 @@ def build_model(name, num_classes, **kwargs):
 
 
 if __name__ == "__main__":
-    kwargs = {
-        'share_conv': False,
-        'return_features': False
-    }
-    model = build_model('PCB_p6', num_classes=6, **kwargs)
+    model = build_model('PCB_p6', num_classes=6,
+                        share_conv=False, return_features=False)
     print(model)
     # test
     input = torch.randn(4, 3, 384, 128)
