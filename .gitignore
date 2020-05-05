@@ -1,0 +1,8 @@
+*.pt
+**/__pycache__/
+**.pyc
+**/torchreid.egg-info/
+**/reid-data/
+**/log/
+**/test_python_api/
+**/Market-1501-v15.09.15/
