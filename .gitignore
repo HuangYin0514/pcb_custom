@@ -1,6 +1,8 @@
 *.pt
-**/__pycache__/
+**/__pycache__
 **.pyc
-**/log/
+**/log
 **/Market-1501-v15.09.15/
 **/experiments/
+**/pcb_net.egg-info/
+**/pretrained_weights/
