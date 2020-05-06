@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torchvision import datasets, transforms
-from sklearn.metrics import average_precision_score
 
+import distance
 import utils
 from dataloader import getDataLoader
 from model import *
@@ -58,83 +58,66 @@ def extract_feature(model, inputs, requires_norm, vectorize, requires_grad=False
 
 
 # ---------------------- Evaluation ----------------------
-
-# ---------------------- Evaluation ----------------------
-def evaluate(query_features, query_labels, query_cams, gallery_features, gallery_labels, gallery_cams):
-    """Evaluate the CMC and mAP
-
-    Arguments:
-        query_features {np.ndarray of size NxC} -- Features of probe images
-        query_labels {np.ndarray of query size N} -- Labels of probe images
-        query_cams {np.ndarray of query size N} -- Cameras of probe images
-        gallery_features {np.ndarray of size N'xC} -- Features of gallery images
-        gallery_labels {np.ndarray of gallery size N'} -- Lables of gallery images
-        gallery_cams {np.ndarray of gallery size N'} -- Cameras of gallery images
-
-    Returns:
-        (torch.IntTensor, float) -- CMC list, mAP
+def eval_market1501(distmat, q_pids, g_pids, q_camids, g_camids, max_rank):
+    """Evaluation with market1501 metric
+    Key: for each query identity, its gallery images from the same camera view are discarded.
     """
+    num_q, num_g = distmat.shape
 
-    CMC = torch.IntTensor(len(gallery_labels)).zero_()
-    AP = 0
-    sorted_index_list, sorted_y_true_list, junk_index_list = [], [], []
+    if num_g < max_rank:
+        max_rank = num_g
+        print(
+            'Note: number of gallery samples is quite small, got {}'.
+            format(num_g)
+        )
 
-    for i in range(len(query_labels)):
-        query_feature = query_features[i]
-        query_label = query_labels[i]
-        query_cam = query_cams[i]
+    indices = np.argsort(distmat, axis=1)
+    matches = (g_pids[indices] == q_pids[:, np.newaxis]).astype(np.int32)
 
-        # Prediction score
-        score = np.dot(gallery_features, query_feature)
+    # compute cmc curve for each query
+    all_cmc = []
+    all_AP = []
+    num_valid_q = 0.  # number of valid query
 
-        match_query_index = np.argwhere(gallery_labels == query_label)
-        same_camera_index = np.argwhere(gallery_cams == query_cam)
+    for q_idx in range(num_q):
+        # get query pid and camid
+        q_pid = q_pids[q_idx]
+        q_camid = q_camids[q_idx]
 
-        # Positive index is the matched indexs at different camera i.e. the desired result
-        positive_index = np.setdiff1d(
-            match_query_index, same_camera_index, assume_unique=True)
+        # remove gallery samples that have the same pid and camid with query
+        order = indices[q_idx]
+        remove = (g_pids[order] == q_pid) & (g_camids[order] == q_camid)
+        keep = np.invert(remove)
 
-        # Junk index is the indexs at the same camera or the unlabeled image
-        junk_index = np.append(
-            np.argwhere(gallery_labels == -1),
-            np.intersect1d(match_query_index, same_camera_index))  # .flatten()
-
-        index = np.arange(len(gallery_labels))
-        # Remove all the junk indexs
-        sufficient_index = np.setdiff1d(index, junk_index)
-
-        # compute AP
-        y_true = np.in1d(sufficient_index, positive_index)
-        y_score = score[sufficient_index]
-        if not np.any(y_true):
+        # compute cmc curve
+        raw_cmc = matches[q_idx][
+            keep]  # binary vector, positions with value 1 are correct matches
+        if not np.any(raw_cmc):
             # this condition is true when query identity does not appear in gallery
             continue
-        AP += average_precision_score(y_true, y_score)
 
-        # Compute CMC
-        # Sort the sufficient index by their scores, from large to small
-        sorted_index = np.argsort(y_score)[::-1]
-        sorted_y_true = y_true[sorted_index]
-        match_index = np.argwhere(sorted_y_true == True)
+        cmc = raw_cmc.cumsum()
+        cmc[cmc > 1] = 1
 
-        if match_index.size > 0:
-            first_match_index = match_index.flatten()[0]
-            CMC[first_match_index:] += 1
+        all_cmc.append(cmc[:max_rank])
+        num_valid_q += 1.
 
-        # keep with junk index, for using the index to show the img from dataloader
-        all_sorted_index = np.argsort(score)[::-1]
-        all_y_true = np.in1d(index, match_query_index)
-        all_sorted_y_true = all_y_true[all_sorted_index]
+        # compute average precision
+        # reference: https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision
+        num_rel = raw_cmc.sum()
+        tmp_cmc = raw_cmc.cumsum()
+        tmp_cmc = [x / (i+1.) for i, x in enumerate(tmp_cmc)]
+        tmp_cmc = np.asarray(tmp_cmc) * raw_cmc
+        AP = tmp_cmc.sum() / num_rel
+        all_AP.append(AP)
 
-        sorted_index_list.append(all_sorted_index)
-        sorted_y_true_list.append(all_sorted_y_true)
-        junk_index_list.append(junk_index)
+    assert num_valid_q > 0, 'Error: all query identities do not appear in gallery'
 
-    CMC = CMC.float()
-    CMC = CMC / len(query_labels) * 100  # average CMC
-    mAP = AP / len(query_labels) * 100
+    all_cmc = np.asarray(all_cmc)
+    all_cmc = all_cmc.sum(0) / num_valid_q
+    mAP = np.mean(all_AP)
 
-    return CMC, mAP, (sorted_index_list, sorted_y_true_list, junk_index_list)
+    return all_cmc, mAP
 
 
 # ---------------------- Start testing ----------------------
@@ -164,10 +147,12 @@ def test(model, dataset, dataset_path, batch_size, max_rank=100):
             model, inputs, requires_norm=True, vectorize=True).cpu().data)
     query_features = torch.cat(query_features, dim=0)
 
-    CMC, mAP, (sorted_index_list, sorted_y_true_list, junk_index_list) = evaluate(
-        query_features, query_labels, query_cams, gallery_features, gallery_labels, gallery_cams)
+    distmat = distance.compute_distance_matrix(
+        query_features, gallery_features)
+    all_cmc, mAP = eval_market1501(
+        distmat, query_labels, gallery_labels, query_cams, gallery_cams, max_rank=max_rank)
 
-    return CMC, mAP
+    return all_cmc, mAP
 
 
 if __name__ == "__main__":
@@ -196,10 +181,10 @@ if __name__ == "__main__":
 
     train_dataloader = getDataLoader(
         args.dataset, args.batch_size, args.dataset_path, 'train', shuffle=True, augment=True)
-    # model = build_model(args.experiment, num_classes=len(train_dataloader.dataset.classes),
-    #                     share_conv=args.share_conv)
-    model = build_model(args.experiment, num_classes=751,
-                            share_conv=args.share_conv)
+    model = build_model(args.experiment, num_classes=len(train_dataloader.dataset.classes),
+                        share_conv=args.share_conv)
+    # model = build_model(args.experiment, num_classes=751,
+    #                         share_conv=args.share_conv)
 
     model = utils.load_network(model,
                                save_dir_path, args.which_epoch)
