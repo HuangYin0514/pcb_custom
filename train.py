@@ -19,6 +19,7 @@ parser.add_argument('--experiment', type=str, default='PCB_p6')
 parser.add_argument('--save_path', type=str, default='./experiments')
 parser.add_argument('--dataset', type=str, default='market1501',
                     choices=['market1501', 'cuhk03', 'duke'])
+parser.add_argument('--dataset_path', type=str, default='/home/hy/vscode/pcb_custom/datasets/Market1501')
 parser.add_argument('--batch_size', default=64,
                     type=int, help='batch_size')
 parser.add_argument('--learning_rate', default=0.1, type=float,
@@ -119,7 +120,7 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
 if __name__ == "__main__":
 
     train_dataloader = getDataLoader(
-        args.dataset, args.batch_size, 'train', shuffle=True, augment=True)
+        args.dataset, args.batch_size,args.dataset_path, 'train', shuffle=True, augment=True)
 
     model = build_model(args.experiment, num_classes=len(train_dataloader.dataset.classes),
                         share_conv=args.share_conv)

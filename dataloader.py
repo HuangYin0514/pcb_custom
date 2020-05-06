@@ -4,12 +4,7 @@ import torch
 from torchvision import datasets, transforms
 
 # ---------------------- Global settings ----------------------
-DATASET_PATH = {
-    'market1501': './Market-1501-v15.09.15/pytorch'
-}
-
-
-def getDataLoader(dataset, batch_size, part, shuffle=True, augment=True):
+def getDataLoader(dataset, batch_size, dataset_path,part, shuffle=True, augment=True):
     """Return the dataloader and imageset of the given dataset
 
     Arguments:
@@ -33,7 +28,7 @@ def getDataLoader(dataset, batch_size, part, shuffle=True, augment=True):
     data_transform = transforms.Compose(transform_list)
 
     assert part in {'train', 'query', 'gallery'}, 'part not in folders'
-    image_dataset = datasets.ImageFolder(os.path.join(DATASET_PATH[dataset], part),
+    image_dataset = datasets.ImageFolder(os.path.join(dataset_path, part),
                                          data_transform)
 
     dataloader = torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,

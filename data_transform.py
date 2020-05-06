@@ -8,10 +8,13 @@ from shutil import copyfile
 
 from utils import *
 
+
 parser = argparse.ArgumentParser(description='Transforming arguments')
 parser.add_argument('--dataset', type=str, default='market1501',
                     choices=['market1501', 'cuhk03', 'duke'])
-arg = parser.parse_args()
+parser.add_argument('--src_root_path', type=str)
+parser.add_argument('--dst_root_path', type=str)
+args = parser.parse_args()
 
 
 def makeDir(path):
@@ -126,11 +129,11 @@ def transform_cuhk03(src_root_path, dst_root_path):
 
 
 if __name__ == '__main__':
-    dst_root_path = DATASET_PATH[arg.dataset]
-    src_root_path = os.path.split(dst_root_path)[0]
+    dst_root_path = args.dst_root_path
+    src_root_path = args.src_root_path
     makeDir(dst_root_path)
 
-    if arg.dataset == 'market1501' or arg.dataset == 'duke':
+    if args.dataset == 'market1501' or args.dataset == 'duke':
         transform_market_duke(src_root_path, dst_root_path)
-    if arg.dataset == 'cuhk03':
+    if args.dataset == 'cuhk03':
         transform_cuhk03(src_root_path, dst_root_path)
