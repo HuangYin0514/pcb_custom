@@ -11,8 +11,7 @@ from torchvision import datasets, transforms
 import distance
 import utils
 from dataloader import getDataLoader
-from model import PCBModel
-
+from model import *
 # ---------------------- Extract features ----------------------
 
 
@@ -157,17 +156,45 @@ def test(model, dataset, dataset_path, batch_size, max_rank=50):
 
 
 if __name__ == "__main__":
-    # from dataloader import getDataLoader
-    # train_dataloader = getDataLoader(
-    #     'market1501', 64, 'train', shuffle=True, augment=True)
-    # gallery_dataloader = getDataLoader(
-    #     'market1501', 4, 'gallery', shuffle=False, augment=False)
-    # camera_ids, labels = get_cam_label(gallery_dataloader.dataset.imgs)
-    from model import *
-    model = build_model('PCB_p6', num_classes=len(train_dataloader.dataset.classes),
-                        share_conv=True)
-    CMC, mAP = test(model, 'market1501', 4)
-    print('Testing: top1:%.2f top5:%.2f top10:%.2f mAP:%.2f' %
-          (CMC[0], CMC[4], CMC[9], mAP))
+    parser = argparse.ArgumentParser(description='Testing arguments')
+    parser.add_argument('--experiment', type=str, default='PCB_p6')
+    parser.add_argument('--save_path', type=str, default='./experiments')
+    parser.add_argument('--which_epoch', default='final',
+                        type=str, help='0,1,2,3...or final')
+    parser.add_argument('--dataset', type=str, default='market1501',
+                        choices=['market1501', 'cuhk03', 'duke'])
+    parser.add_argument('--dataset_path', type=str,
+                        default='/home/hy/vscode/pcb_custom/datasets/Market1501')
+    parser.add_argument('--batch_size', default=512,
+                        type=int, help='batchsize')
+    parser.add_argument('--share_conv', default=False, action='store_true')
+    args = parser.parse_args()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Make saving directory
+    save_dir_path = os.path.join(args.save_path, args.dataset)
+    os.makedirs(save_dir_path, exist_ok=True)
+
+    logger = utils.Logger(save_dir_path)
+    logger.info(vars(args))
+
+    train_dataloader = getDataLoader(
+        args.dataset, args.batch_size, args.dataset_path, 'train', shuffle=True, augment=True)
+    model = build_model(args.experiment, num_classes=len(train_dataloader.dataset.classes),
+                        share_conv=args.share_conv)
+    # model = build_model(args.experiment, num_classes=751,
+    #                         share_conv=args.share_conv)
+
+    model = utils.load_network(model,
+                               save_dir_path, args.which_epoch)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device)
+    CMC, mAP = test(model, args.dataset, args.dataset_path, args.batch_size)
+
+    logger.info('Testing: top1:%.2f top5:%.2f top10:%.2f mAP:%.2f' %
+                (CMC[0], CMC[4], CMC[9], mAP))
 
     torch.cuda.empty_cache()
