@@ -26,7 +26,7 @@ parser.add_argument('--learning_rate', default=0.1, type=float,
                     help='FC params learning rate')
 parser.add_argument('--epochs', default=15, type=int,
                     help='The number of epochs to train')
-parser.add_argument('--share_conv', default=True, action='store_true')
+parser.add_argument('--share_conv', default=False, action='store_true')
 parser.add_argument('--stripes', type=int, default=6)
 args = parser.parse_args()
 
