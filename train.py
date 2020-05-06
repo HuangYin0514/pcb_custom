@@ -19,7 +19,8 @@ parser.add_argument('--experiment', type=str, default='PCB_p6')
 parser.add_argument('--save_path', type=str, default='./experiments')
 parser.add_argument('--dataset', type=str, default='market1501',
                     choices=['market1501', 'cuhk03', 'duke'])
-parser.add_argument('--dataset_path', type=str, default='/home/hy/vscode/pcb_custom/datasets/Market1501')
+parser.add_argument('--dataset_path', type=str,
+                    default='/home/hy/vscode/pcb_custom/datasets/Market1501')
 parser.add_argument('--batch_size', default=64,
                     type=int, help='batch_size')
 parser.add_argument('--learning_rate', default=0.1, type=float,
@@ -92,10 +93,10 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
         logger.x_epoch_loss.append(epoch + 1)
         logger.y_train_loss.append(epoch_loss)
 
-        if (epoch + 1) % 5 == 0 or epoch + 1 == num_epochs:
+        if (epoch + 1) % 1 == 0 or epoch + 1 == num_epochs:
             # Testing / Validating
             torch.cuda.empty_cache()
-            CMC, mAP = test(model, args.dataset, 512)
+            CMC, mAP = test(model, args.dataset, args.dataset_path, 512)
             logger.info('Testing: top1:%.2f top5:%.2f top10:%.2f mAP:%.2f' %
                         (CMC[0], CMC[4], CMC[9], mAP))
 
@@ -120,7 +121,7 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
 if __name__ == "__main__":
 
     train_dataloader = getDataLoader(
-        args.dataset, args.batch_size,args.dataset_path, 'train', shuffle=True, augment=True)
+        args.dataset, args.batch_size, args.dataset_path, 'train', shuffle=True, augment=True)
 
     model = build_model(args.experiment, num_classes=len(train_dataloader.dataset.classes),
                         share_conv=args.share_conv)

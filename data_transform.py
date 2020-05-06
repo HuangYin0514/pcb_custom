@@ -12,8 +12,10 @@ from utils import *
 parser = argparse.ArgumentParser(description='Transforming arguments')
 parser.add_argument('--dataset', type=str, default='market1501',
                     choices=['market1501', 'cuhk03', 'duke'])
-parser.add_argument('--src_root_path', type=str)
-parser.add_argument('--dst_root_path', type=str)
+parser.add_argument('--src_root_path', type=str,
+                    default='/home/hy/vscode/pcb_custom/Market-1501-v15.09.15')
+parser.add_argument('--dst_root_path', type=str,
+                    default='/home/hy/vscode/pcb_custom/datasets/Market1501')
 args = parser.parse_args()
 
 

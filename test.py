@@ -122,13 +122,13 @@ def eval_market1501(distmat, q_pids, g_pids, q_camids, g_camids, max_rank):
 
 
 # ---------------------- Start testing ----------------------
-def test(model, dataset, batch_size, max_rank=50):
+def test(model, dataset, dataset_path, batch_size, max_rank=50):
     model.eval()
 
     gallery_dataloader = getDataLoader(
-        dataset, batch_size, 'gallery', shuffle=False, augment=False)
+        dataset, batch_size, dataset_path, 'gallery', shuffle=False, augment=False)
     query_dataloader = getDataLoader(
-        dataset, batch_size, 'query', shuffle=False, augment=False)
+        dataset, batch_size, dataset_path, 'query', shuffle=False, augment=False)
 
     gallery_cams, gallery_labels = get_cam_label(
         gallery_dataloader.dataset.imgs)
