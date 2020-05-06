@@ -25,7 +25,7 @@ parser.add_argument('--batch_size', default=64,
                     type=int, help='batch_size')
 parser.add_argument('--learning_rate', default=0.1, type=float,
                     help='FC params learning rate')
-parser.add_argument('--epochs', default=15, type=int,
+parser.add_argument('--epochs', default=60, type=int,
                     help='The number of epochs to train')
 parser.add_argument('--share_conv', default=False, action='store_true')
 parser.add_argument('--stripes', type=int, default=6)
@@ -93,7 +93,7 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
         logger.x_epoch_loss.append(epoch + 1)
         logger.y_train_loss.append(epoch_loss)
 
-        if (epoch + 1) % 5 == 0 or epoch + 1 == num_epochs:
+        if (epoch + 1) % 10 == 0 or epoch + 1 == num_epochs:
             # Testing / Validating
             torch.cuda.empty_cache()
             CMC, mAP = test(model, args.dataset, args.dataset_path, 512)
