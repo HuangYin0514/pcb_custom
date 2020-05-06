@@ -9,14 +9,12 @@ class PCBModel(nn.Module):
                  num_classes,
                  num_stripes,
                  share_conv,
-                 return_features,
                  **kwargs):
 
         super(PCBModel, self).__init__()
         self.num_stripes = num_stripes
         self.num_classes = num_classes
         self.share_conv = share_conv
-        self.return_features = return_features
 
         resnet = models.resnet50(pretrained=True)
         # Modifiy the stride of last conv layer
@@ -81,7 +79,7 @@ class PCBModel(nn.Module):
 
         # Return the features_H
         if not self.training:
-            return torch.stack(features_H, dim=2).view(x.size(0), -1)
+            return torch.stack(features_H, dim=2)
 
         # [N, C=num_classes]
         batch_size = x.size(0)
@@ -94,13 +92,12 @@ class PCBModel(nn.Module):
 ##########
 # Instantiation
 ##########
-def PCB_p6(num_classes,  num_stripes, share_conv, return_features, **kwargs):
-    assert num_stripes==6, "num_stripes not eq 6"
+def PCB_p6(num_classes, share_conv, num_stripes=6, **kwargs):
+    assert num_stripes == 6, "num_stripes not eq 6"
     return PCBModel(
         num_classes=num_classes,
         num_stripes=num_stripes,
         share_conv=share_conv,
-        return_features=return_features,
         **kwargs
     )
 
@@ -118,12 +115,12 @@ def build_model(name, num_classes, **kwargs):
 
 
 if __name__ == "__main__":
-    model = build_model('PCB_p6', num_classes=6,
-                        share_conv=False, return_features=False)
+    model = build_model('PCB_p6', num_classes=6, share_conv=False)
     print(model)
-    # test
+    # test input and ouput
     input = torch.randn(4, 3, 384, 128)
     print(model(input))
+    ## output is list 
     if isinstance(model(input), list):
         print([k.shape for k in model(input)])
     else:
