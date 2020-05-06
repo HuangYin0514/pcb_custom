@@ -93,7 +93,7 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
         logger.x_epoch_loss.append(epoch + 1)
         logger.y_train_loss.append(epoch_loss)
 
-        if (epoch + 1) % 10 == 0 or epoch + 1 == num_epochs:
+        if (epoch + 1) % 20 == 0 or epoch + 1 == num_epochs:
             # Testing / Validating
             torch.cuda.empty_cache()
             CMC, mAP = test(model, args.dataset, args.dataset_path, 512)
