@@ -58,8 +58,8 @@ def transform_market_duke(src_root_path, dst_root_path):
                       os.path.join(dst_root_path, 'gallery'))
     transform_to_path(os.path.join(src_root_path, 'query'),
                       os.path.join(dst_root_path, 'query'))
-    transform_to_path(os.path.join(src_root_path, 'bounding_box_train'),
-                      os.path.join(dst_root_path, 'train_all'))
+    # transform_to_path(os.path.join(src_root_path, 'bounding_box_train'),
+    #                   os.path.join(dst_root_path, 'train_all'))
     transform_to_path(os.path.join(src_root_path, 'bounding_box_train'),
                       os.path.join(dst_root_path, 'train'), make_val=True)
 
