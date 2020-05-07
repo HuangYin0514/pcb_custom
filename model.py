@@ -9,12 +9,14 @@ class PCBModel(nn.Module):
                  num_classes,
                  num_stripes,
                  share_conv,
-                 **kwargs):
+                 loss='softmax',
+                 ** kwargs):
 
         super(PCBModel, self).__init__()
         self.num_stripes = num_stripes
         self.num_classes = num_classes
         self.share_conv = share_conv
+        self.loss = loss
 
         resnet = models.resnet50(pretrained=True)
         # Modifiy the stride of last conv layer
@@ -86,6 +88,14 @@ class PCBModel(nn.Module):
         logits_list = [self.fc_list[i](features_H[i].view(batch_size, -1))
                        for i in range(self.num_stripes)]
 
+        if self.loss == 'softmax':
+            return logits_list
+        elif self.loss == 'triplet':
+            return logits_list, torch.stack(features_H, dim=2)
+        else:
+            raise KeyError("Unsupported loss: {}".format(self.loss))
+
+
         return logits_list
 
 
@@ -120,7 +130,7 @@ if __name__ == "__main__":
     # test input and ouput
     input = torch.randn(4, 3, 384, 128)
     print(model(input))
-    ## output is list 
+    ## output is list
     if isinstance(model(input), list):
         print([k.shape for k in model(input)])
     else:
