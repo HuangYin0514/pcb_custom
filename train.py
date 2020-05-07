@@ -41,7 +41,14 @@ torch.cuda.manual_seed_all(1)
 save_dir_path = os.path.join(args.save_path, args.dataset)
 os.makedirs(save_dir_path, exist_ok=True)
 
+
 # ---------------------- Train function ----------------------
+# Schedule learning rate
+def adjust_lr(epoch):
+    step_size = 40
+    lr = args.learning_rate * (0.1 ** (epoch // step_size))
+    for g in optimizer.param_groups:
+        g['lr'] = lr * g.get('lr_mult', 1)
 
 
 def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device):
@@ -59,7 +66,7 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
         logger.info('Epoch {}/{}'.format(epoch + 1, num_epochs))
 
         model.train()
-        scheduler.step()
+        adjust_lr(epoch)
 
         # Training
         running_loss = 0.0
@@ -132,15 +139,14 @@ if __name__ == "__main__":
 
     criterion = nn.CrossEntropyLoss()
 
-    # Finetune the net
-    optimizer = optim.SGD([
-        {'params': model.backbone.parameters(), 'lr': args.learning_rate / 10},
-        {'params': model.local_conv.parameters() if args.share_conv else model.local_conv_list.parameters(),
-         'lr': args.learning_rate},
-        {'params': model.fc_list.parameters(), 'lr': args.learning_rate}
-    ], momentum=0.9, weight_decay=5e-4, nesterov=True)
+    base_param_ids = set(map(id, model.backbone.parameters()))
+    new_params = [p for p in model.parameters() if id(p) not in base_param_ids]
+    param_groups = [{'params': model.backbone.parameters(), 'lr_mult': 0.1},
+                    {'params': new_params, 'lr_mult': 1.0}]
+    optimizer = torch.optim.SGD(param_groups, lr=args.learning_rate, momentum=0.9, weight_decay=5e-4,
+                                nesterov=True)
 
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    scheduler = None
 
     # ---------------------- Start training ----------------------
     train(model, criterion, optimizer, scheduler,
