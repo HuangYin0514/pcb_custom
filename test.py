@@ -57,7 +57,6 @@ def extract_feature(model, inputs, requires_norm, vectorize, requires_grad=False
     return features
 
 
-# ---------------------- Evaluation ----------------------
 
 # ---------------------- Evaluation ----------------------
 def evaluate(query_features, query_labels, query_cams, gallery_features, gallery_labels, gallery_cams):
