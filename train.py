@@ -84,9 +84,14 @@ def train(model, criterion, optimizer, scheduler, dataloader, num_epochs, device
 
             # Sum up the stripe softmax loss
             loss = 0
-            for logits in outputs:
-                stripe_loss = criterion(logits, labels)
-                loss += stripe_loss
+            if isinstance(outputs, (list,)):
+                for logits in outputs:
+                    stripe_loss = criterion(logits, labels)
+                    loss += stripe_loss
+            elif isinstance(outputs,(torch.Tensor,)):
+                loss = criterion(outputs, labels)
+            else:
+                raise Exception('outputs type is error !')
 
             loss.backward()
             optimizer.step()
