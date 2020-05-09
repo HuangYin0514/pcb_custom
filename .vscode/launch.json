@@ -18,7 +18,7 @@
             "program": "train.py",
             "console": "integratedTerminal",
             "args": [
-                "--experiment=Res_net",
+                "--experiment=Resnet_self_attention",
             ]
         },
     ]
